@@ -2,21 +2,16 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({ user }) => {
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Example user data
-  const user = {
-    username: 'Alex Morgan',
-  };
 
   const handleSearch = (e) => {
     e.preventDefault();
     console.log('Searching for:', searchQuery);
   };
 
-  const avatarLetter = user.username
-    ? user.username.charAt(0).toUpperCase()
+  const avatarLetter = user?.username
+    ? user?.username.charAt(0).toUpperCase()
     : 'U';
 
   return (
@@ -25,10 +20,6 @@ const Header = () => {
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-[#FFDB58] flex items-center justify-center text-neutral-800 font-black text-lg shadow-sm transition-transform group-hover:scale-105">
-              M
-            </div>
-
             <span
               className="hidden sm:block text-xl font-bold tracking-tight text-neutral-800"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
@@ -55,7 +46,7 @@ const Header = () => {
           {/* User */}
           <div className="flex items-center gap-3">
             <span className="hidden sm:block text-sm font-medium text-neutral-700">
-              {user.username}
+              {user?.username || 'User'}
             </span>
 
             <button

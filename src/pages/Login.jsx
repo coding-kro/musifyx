@@ -3,9 +3,11 @@ import toast from 'react-hot-toast';
 import RightHeroSection from '../components/RightHeroSection';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/axios.js';
+import { useAuth } from '../context/auth.context';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +30,7 @@ export default function Login() {
 
       const response = await api.post(`/auth/login`, formData);
 
-      console.log(response);
+      setUser(response?.data?.user);
 
       toast.success(response.data.message || 'User login successfully');
 
