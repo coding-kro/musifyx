@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Play,
   Pause,
@@ -7,95 +7,120 @@ import {
   Volume2,
   VolumeX,
   Volume1,
-  ChevronUp,
   ChevronDown,
 } from 'lucide-react';
 
-const TRACKS = [
-  {
-    id: 1,
-    title: 'Midnight City Beats',
-    artist: 'Luna Waves',
-    cover:
-      'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=150&q=80',
-    duration: 215,
-  },
-  {
-    id: 2,
-    title: 'Neon Drift',
-    artist: 'Solaris',
-    cover:
-      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=150&q=80',
-    duration: 184,
-  },
-  {
-    id: 3,
-    title: 'Acoustic Horizon',
-    artist: 'Ember Creek',
-    cover:
-      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=150&q=80',
-    duration: 240,
-  },
-];
+const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
+  const audioRef = useRef(null);
 
-const MusicPlayerFooter = () => {
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const timerRef = useRef(null);
+  const audioUrl = song?.uri;
 
-  const currentTrack = TRACKS[currentTrackIndex];
+  const cover = song?.banner;
 
-  const progress = (currentTime / currentTrack.duration) * 100;
-
-  const formatTime = (seconds) => {
-    if (isNaN(seconds)) return '0:00';
-
-    const minutes = Math.floor(seconds / 60);
-    const remaining = Math.floor(seconds % 60);
-
-    return `${minutes}:${remaining < 10 ? '0' : ''}${remaining}`;
-  };
+  const title = song?.title || 'Unknown Song';
+  const artist = song?.artist?.username || 'Unknown Artist';
 
   useEffect(() => {
-    if (isPlaying) {
-      timerRef.current = setInterval(() => {
-        setCurrentTime((prev) => {
-          if (prev >= currentTrack.duration) {
-            handleNextTrack();
-            return 0;
-          }
+    if (!song || !audioUrl || !audioRef.current) return;
 
-          return prev + 1;
-        });
-      }, 1000);
+    const audio = audioRef.current;
+
+    audio.src = audioUrl;
+    audio.load();
+
+    setCurrentTime(0);
+    setDuration(0);
+
+    const playSong = async () => {
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch (error) {
+        console.error('Unable to play audio:', error);
+        setIsPlaying(false);
+      }
+    };
+
+    playSong();
+  }, [song, audioUrl]);
+
+  /*
+   * Update progress while audio is playing.
+   */
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration || 0);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+
+      if (onNext) {
+        onNext();
+      }
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [onNext]);
+
+  /*
+   * Volume
+   */
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    audioRef.current.volume = isMuted ? 0 : volume / 100;
+  }, [volume, isMuted]);
+
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+
+    if (!audio || !song) return;
+
+    try {
+      if (audio.paused) {
+        await audio.play();
+        setIsPlaying(true);
+      } else {
+        audio.pause();
+        setIsPlaying(false);
+      }
+    } catch (error) {
+      console.error('Playback error:', error);
     }
-
-    return () => clearInterval(timerRef.current);
-  }, [isPlaying, currentTrackIndex]);
-
-  const togglePlay = () => {
-    setIsPlaying((prev) => !prev);
-  };
-
-  const handleNextTrack = () => {
-    setCurrentTrackIndex((prev) => (prev + 1) % TRACKS.length);
-
-    setCurrentTime(0);
-  };
-
-  const handlePrevTrack = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + TRACKS.length) % TRACKS.length);
-
-    setCurrentTime(0);
   };
 
   const handleSeek = (e) => {
-    setCurrentTime(Number(e.target.value));
+    const value = Number(e.target.value);
+
+    if (!audioRef.current) return;
+
+    audioRef.current.currentTime = value;
+    setCurrentTime(value);
   };
 
   const handleVolumeChange = (e) => {
@@ -109,33 +134,73 @@ const MusicPlayerFooter = () => {
     setIsMuted((prev) => !prev);
   };
 
-  const renderVolumeIcon = () => {
-    if (isMuted || volume === 0) return <VolumeX className="h-5 w-5" />;
+  const handlePrevious = () => {
+    if (onPrevious) {
+      onPrevious();
+    }
+  };
 
-    if (volume < 50) return <Volume1 className="h-5 w-5" />;
+  const handleNext = () => {
+    if (onNext) {
+      onNext();
+    }
+  };
+
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) {
+      return '0:00';
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const remaining = Math.floor(seconds % 60);
+
+    return `${minutes}:${remaining < 10 ? '0' : ''}${remaining}`;
+  };
+
+  const progress = duration ? (currentTime / duration) * 100 : 0;
+
+  const renderVolumeIcon = () => {
+    if (isMuted || volume === 0) {
+      return <VolumeX className="h-5 w-5" />;
+    }
+
+    if (volume < 50) {
+      return <Volume1 className="h-5 w-5" />;
+    }
 
     return <Volume2 className="h-5 w-5" />;
   };
+
+  /*
+   * Don't show player until a song is selected.
+   */
+  if (!song) {
+    return null;
+  }
 
   const Slider = () => (
     <input
       type="range"
       min="0"
-      max={currentTrack.duration}
+      max={duration || 0}
       value={currentTime}
       onChange={handleSeek}
       style={{
-        background: `linear-gradient(to right,#FFDB58 ${progress}%,#E6DDC6 ${progress}%)`,
+        background: `linear-gradient(
+          to right,
+          #FFDB58 ${progress}%,
+          #E6DDC6 ${progress}%
+        )`,
       }}
       className="
-        flex-1
         h-1
-        rounded-full
-        appearance-none
+        flex-1
         cursor-pointer
-        [&::-webkit-slider-thumb]:appearance-none
-        [&::-webkit-slider-thumb]:w-3
+        appearance-none
+        rounded-full
         [&::-webkit-slider-thumb]:h-3
+        [&::-webkit-slider-thumb]:w-3
+        [&::-webkit-slider-thumb]:appearance-none
         [&::-webkit-slider-thumb]:rounded-full
         [&::-webkit-slider-thumb]:bg-[#FFDB58]
       "
@@ -144,31 +209,44 @@ const MusicPlayerFooter = () => {
 
   return (
     <>
+      {/* REAL AUDIO ELEMENT */}
+      <audio ref={audioRef} preload="metadata" />
+
       {/* MOBILE PLAYER */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-between bg-[#FAF7EE] p-6 text-neutral-800 md:hidden">
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#FAF7EE] p-6">
+          {/* Close */}
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="text-neutral-500"
+            className="mb-6 flex w-fit items-center gap-2 text-neutral-500"
           >
-            <ChevronDown className="h-7 w-7" />
+            <ChevronDown className="h-6 w-6" />
+            <span>Close</span>
           </button>
 
-          <div className="flex flex-col items-center gap-6">
-            <img
-              src={currentTrack.cover}
-              alt={currentTrack.title}
-              className="h-64 w-64 rounded-3xl object-cover shadow-xl"
-            />
+          {/* Cover */}
+          <div className="flex flex-1 flex-col items-center justify-center gap-6">
+            {cover ? (
+              <img
+                src={cover}
+                alt={title}
+                className="h-64 w-64 rounded-3xl object-cover shadow-xl"
+              />
+            ) : (
+              <div className="flex h-64 w-64 items-center justify-center rounded-3xl bg-[#E6DDC6]">
+                <Play className="h-16 w-16 text-neutral-500" />
+              </div>
+            )}
 
             <div className="text-center">
-              <h3 className="text-xl font-bold">{currentTrack.title}</h3>
+              <h3 className="text-xl font-bold text-neutral-800">{title}</h3>
 
-              <p className="text-sm text-neutral-500">{currentTrack.artist}</p>
+              <p className="text-sm text-neutral-500">{artist}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Progress */}
+          <div className="mb-6 flex items-center gap-3">
             <span className="w-10 text-xs font-mono text-neutral-500">
               {formatTime(currentTime)}
             </span>
@@ -176,12 +254,13 @@ const MusicPlayerFooter = () => {
             <Slider />
 
             <span className="w-10 text-xs font-mono text-neutral-500">
-              {formatTime(currentTrack.duration)}
+              {formatTime(duration)}
             </span>
           </div>
 
-          <div className="flex justify-center gap-8">
-            <button onClick={handlePrevTrack}>
+          {/* Controls */}
+          <div className="mb-8 flex justify-center gap-8">
+            <button onClick={handlePrevious} className="text-neutral-700">
               <SkipBack />
             </button>
 
@@ -196,7 +275,7 @@ const MusicPlayerFooter = () => {
               )}
             </button>
 
-            <button onClick={handleNextTrack}>
+            <button onClick={handleNext} className="text-neutral-700">
               <SkipForward />
             </button>
           </div>
@@ -209,27 +288,31 @@ const MusicPlayerFooter = () => {
           {/* TRACK INFO */}
           <div
             onClick={() => setIsMobileOpen(true)}
-            className="flex min-w-0 flex-1 items-center gap-3 cursor-pointer"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-3"
           >
-            <img
-              src={currentTrack.cover}
-              alt=""
-              className="h-12 w-12 rounded-xl object-cover"
-            />
+            {cover ? (
+              <img
+                src={cover}
+                alt={title}
+                className="h-12 w-12 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-xl bg-[#E6DDC6]" />
+            )}
 
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-neutral-800">
-                {currentTrack.title}
+                {title}
               </p>
 
-              <p className="text-xs text-neutral-500">{currentTrack.artist}</p>
+              <p className="truncate text-xs text-neutral-500">{artist}</p>
             </div>
           </div>
 
           {/* CONTROLS */}
-          <div className="flex flex-1 max-w-xl flex-col items-center">
+          <div className="flex max-w-xl flex-1 flex-col items-center">
             <div className="flex items-center gap-5">
-              <button onClick={handlePrevTrack} className="hidden sm:block">
+              <button onClick={handlePrevious} className="hidden sm:block">
                 <SkipBack className="h-5 w-5" />
               </button>
 
@@ -244,26 +327,26 @@ const MusicPlayerFooter = () => {
                 )}
               </button>
 
-              <button onClick={handleNextTrack}>
+              <button onClick={handleNext}>
                 <SkipForward className="h-5 w-5" />
               </button>
             </div>
 
             <div className="flex w-full items-center gap-2">
-              <span className="hidden sm:block text-xs font-mono text-neutral-500">
+              <span className="hidden text-xs font-mono text-neutral-500 sm:block">
                 {formatTime(currentTime)}
               </span>
 
               <Slider />
 
-              <span className="hidden sm:block text-xs font-mono text-neutral-500">
-                {formatTime(currentTrack.duration)}
+              <span className="hidden text-xs font-mono text-neutral-500 sm:block">
+                {formatTime(duration)}
               </span>
             </div>
           </div>
 
           {/* VOLUME */}
-          <div className="hidden md:flex flex-1 justify-end items-center gap-3">
+          <div className="hidden flex-1 items-center justify-end gap-3 md:flex">
             <button onClick={toggleMute}>{renderVolumeIcon()}</button>
 
             <input
