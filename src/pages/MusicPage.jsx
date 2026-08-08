@@ -18,6 +18,12 @@ const MusicPage = () => {
   // Currently playing song
   const [currentSong, setCurrentSong] = useState(null);
 
+  // Current playlist / album songs
+  const [currentPlaylist, setCurrentPlaylist] = useState([]);
+
+  // Current song index inside playlist
+  const [currentIndex, setCurrentIndex] = useState(-1);
+
   const [loading, setLoading] = useState(false);
 
   const handleTabChange = (tab) => {
@@ -29,9 +35,61 @@ const MusicPage = () => {
     }
   };
 
-  // When a song card is clicked
-  const handlePlaySong = (song) => {
+  /*
+   * Play a song.
+   *
+   * song     = song to play
+   * playlist = songs that should play after it
+   */
+  const handlePlaySong = (song, playlist = songData) => {
+    const index = playlist.findIndex(
+      (item) => (item._id || item.id) === (song._id || song.id),
+    );
+
     setCurrentSong(song);
+    setCurrentPlaylist(playlist);
+    setCurrentIndex(index);
+  };
+
+  //  Play next song
+
+  const handleNextSong = () => {
+    if (!currentPlaylist.length) return;
+
+    const nextIndex = currentIndex + 1;
+
+    // If this was the last song
+    if (nextIndex >= currentPlaylist.length) {
+      // Keep the last song visible in the footer.
+      setCurrentIndex(currentPlaylist.length - 1);
+      return;
+    }
+
+    const nextSong = currentPlaylist[nextIndex];
+
+    setCurrentIndex(nextIndex);
+    setCurrentSong(nextSong);
+  };
+
+  //  Play previous song
+
+  const handlePreviousSong = () => {
+    if (!currentPlaylist.length) return;
+
+    const previousIndex = currentIndex - 1;
+
+    // If already at first song,
+    // keep playing the first song.
+    if (previousIndex < 0) {
+      setCurrentIndex(0);
+      setCurrentSong(currentPlaylist[0]);
+      return;
+    }
+
+    const previousSong = currentPlaylist[previousIndex];
+
+    setCurrentIndex(previousIndex);
+    setCurrentSong(previousSong);
   };
 
   // Fetch songs and albums
@@ -78,6 +136,10 @@ const MusicPage = () => {
     fetchAlbumDetails();
   }, [selectedAlbum]);
 
+  // Songs belonging to currently selected album
+
+  const albumSongs = albumDetails?.musics || selectedAlbum?.musics || [];
+
   return (
     <div className="min-h-screen bg-[#E5E0D2] p-4 sm:p-6 lg:p-8 font-sans">
       <div className="min-h-screen pb-28">
@@ -97,7 +159,7 @@ const MusicPage = () => {
                 <SongCard
                   key={song._id || song.id}
                   song={song}
-                  onPlay={handlePlaySong}
+                  onPlay={() => handlePlaySong(song, songData)}
                 />
               ))
             ) : (
@@ -133,16 +195,21 @@ const MusicPage = () => {
                   }}
                 />
 
+                {/* ALBUM SONGS */}
                 <div className="space-y-3">
-                  {(albumDetails?.musics || selectedAlbum?.musics || []).map(
-                    (song, index) => (
+                  {albumSongs.length > 0 ? (
+                    albumSongs.map((song, index) => (
                       <AlbumTrackItem
                         key={song._id || index}
                         song={song}
                         index={index}
-                        onPlay={handlePlaySong}
+                        onPlay={() => handlePlaySong(song, albumSongs)}
                       />
-                    ),
+                    ))
+                  ) : (
+                    <p className="text-neutral-500">
+                      No songs found in this album.
+                    </p>
                   )}
                 </div>
               </div>
@@ -151,7 +218,13 @@ const MusicPage = () => {
         )}
 
         {/* FOOTER MUSIC PLAYER */}
-        {currentSong && <MusicPlayerFooter song={currentSong} />}
+        {currentSong && (
+          <MusicPlayerFooter
+            song={currentSong}
+            onNext={handleNextSong}
+            onPrevious={handlePreviousSong}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,9 @@
-const AlbumTrackItem = ({ song, index }) => {
+const AlbumTrackItem = ({ song, index, onPlay }) => {
   return (
-    <div className="group flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[#E6DDC6] bg-linear-to-r from-[#FAF7EE] to-[#F6F1E3] p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-[#DCCFA8]">
+    <div
+      onClick={() => onPlay?.(song)}
+      className="group flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[#E6DDC6] bg-linear-to-r from-[#FAF7EE] to-[#F6F1E3] p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-[#DCCFA8]"
+    >
       <div className="flex min-w-0 flex-1 items-center gap-4">
         {/* Track Number */}
         <span className="w-7 text-center font-mono text-lg font-semibold text-neutral-500">

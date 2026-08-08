@@ -20,108 +20,243 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  //  API fields
+
   const audioUrl = song?.uri;
-
   const cover = song?.banner;
-
   const title = song?.title || 'Unknown Song';
   const artist = song?.artist?.username || 'Unknown Artist';
 
-  useEffect(() => {
-    if (!song || !audioUrl || !audioRef.current) return;
+  const onNextRef = useRef(onNext);
+  const onPreviousRef = useRef(onPrevious);
 
+  useEffect(() => {
+    onNextRef.current = onNext;
+  }, [onNext]);
+
+  useEffect(() => {
+    onPreviousRef.current = onPrevious;
+  }, [onPrevious]);
+
+  //  Load and automatically play selected song.
+
+  useEffect(() => {
     const audio = audioRef.current;
 
-    audio.src = audioUrl;
-    audio.load();
+    if (!audio || !song || !audioUrl) {
+      return;
+    }
 
-    setCurrentTime(0);
-    setDuration(0);
+    let cancelled = false;
 
-    const playSong = async () => {
+    const loadSong = async () => {
       try {
-        await audio.play();
-        setIsPlaying(true);
-      } catch (error) {
-        console.error('Unable to play audio:', error);
+        // Stop previous song.
+
+        audio.pause();
+
+        // Reset player state.
+
         setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+
+        //  Set new audio source.
+
+        audio.src = audioUrl;
+
+        // Load the new source.
+
+        audio.load();
+
+        // Wait for browser to process the new source.
+
+        await new Promise((resolve, reject) => {
+          const handleCanPlay = () => {
+            cleanup();
+            resolve();
+          };
+
+          const handleError = () => {
+            cleanup();
+            reject(new Error('Audio could not be loaded.'));
+          };
+
+          const cleanup = () => {
+            audio.removeEventListener('canplay', handleCanPlay);
+
+            audio.removeEventListener('error', handleError);
+          };
+
+          audio.addEventListener('canplay', handleCanPlay, { once: true });
+
+          audio.addEventListener('error', handleError, { once: true });
+        });
+
+        //  Song changed while loading.
+
+        if (cancelled) {
+          return;
+        }
+
+        // Automatically start the selected song.
+
+        await audio.play();
+
+        if (!cancelled) {
+          setIsPlaying(true);
+        }
+      } catch (error) {
+        if (error?.name === 'AbortError' || cancelled) {
+          return;
+        }
+
+        console.error('Unable to play audio:', error);
+
+        if (!cancelled) {
+          setIsPlaying(false);
+        }
       }
     };
 
-    playSong();
+    loadSong();
+
+    // Cleanup when song changes/unmounts.
+
+    return () => {
+      cancelled = true;
+      audio.pause();
+    };
   }, [song, audioUrl]);
 
-  /*
-   * Update progress while audio is playing.
-   */
+  // Audio event listeners.
+
   useEffect(() => {
     const audio = audioRef.current;
 
-    if (!audio) return;
+    if (!audio) {
+      return;
+    }
 
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
     };
 
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration || 0);
+      if (Number.isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
 
-      if (onNext) {
-        onNext();
+      // Ask MusicPage for the next song.
+
+      if (onNextRef.current) {
+        onNextRef.current();
       }
     };
 
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+
+    const handleError = () => {
+      // Ignore empty source errors.
+
+      if (!audio.src) {
+        return;
+      }
+
+      console.error('Audio element error:', audio.error);
+
+      setIsPlaying(false);
+    };
+
     audio.addEventListener('timeupdate', handleTimeUpdate);
+
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+
     audio.addEventListener('ended', handleEnded);
+
+    audio.addEventListener('play', handlePlay);
+
+    audio.addEventListener('pause', handlePause);
+
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
+
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+
       audio.removeEventListener('ended', handleEnded);
+
+      audio.removeEventListener('play', handlePlay);
+
+      audio.removeEventListener('pause', handlePause);
+
+      audio.removeEventListener('error', handleError);
     };
-  }, [onNext]);
+  }, []);
 
-  /*
-   * Volume
-   */
+  // Volume
+
   useEffect(() => {
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
 
-    audioRef.current.volume = isMuted ? 0 : volume / 100;
+    if (!audio) {
+      return;
+    }
+
+    audio.volume = isMuted ? 0 : volume / 100;
   }, [volume, isMuted]);
+
+  // Play / Pause
 
   const togglePlay = async () => {
     const audio = audioRef.current;
 
-    if (!audio || !song) return;
+    if (!audio || !song || !audioUrl) {
+      return;
+    }
 
     try {
       if (audio.paused) {
         await audio.play();
-        setIsPlaying(true);
       } else {
         audio.pause();
-        setIsPlaying(false);
       }
     } catch (error) {
+      if (error?.name === 'AbortError') {
+        return;
+      }
+
       console.error('Playback error:', error);
     }
   };
 
+  // Seek
+
   const handleSeek = (e) => {
     const value = Number(e.target.value);
+    const audio = audioRef.current;
 
-    if (!audioRef.current) return;
+    if (!audio) {
+      return;
+    }
 
-    audioRef.current.currentTime = value;
+    audio.currentTime = value;
     setCurrentTime(value);
   };
+
+  // Volume
 
   const handleVolumeChange = (e) => {
     const value = Number(e.target.value);
@@ -129,25 +264,31 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
     setVolume(value);
     setIsMuted(value === 0);
   };
-
+  // Mute
   const toggleMute = () => {
     setIsMuted((prev) => !prev);
   };
 
+  //  Previous
+
   const handlePrevious = () => {
-    if (onPrevious) {
-      onPrevious();
+    if (onPreviousRef.current) {
+      onPreviousRef.current();
     }
   };
+
+  // Next
 
   const handleNext = () => {
-    if (onNext) {
-      onNext();
+    if (onNextRef.current) {
+      onNextRef.current();
     }
   };
 
+  // Format time
+
   const formatTime = (seconds) => {
-    if (!seconds || isNaN(seconds)) {
+    if (!Number.isFinite(seconds) || seconds < 0) {
       return '0:00';
     }
 
@@ -157,7 +298,12 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
     return `${minutes}:${remaining < 10 ? '0' : ''}${remaining}`;
   };
 
-  const progress = duration ? (currentTime / duration) * 100 : 0;
+  // Progress
+
+  const progress =
+    duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
+
+  // Volume icon
 
   const renderVolumeIcon = () => {
     if (isMuted || volume === 0) {
@@ -171,19 +317,14 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
     return <Volume2 className="h-5 w-5" />;
   };
 
-  /*
-   * Don't show player until a song is selected.
-   */
-  if (!song) {
-    return null;
-  }
+  // Slider
 
   const Slider = () => (
     <input
       type="range"
       min="0"
       max={duration || 0}
-      value={currentTime}
+      value={Math.min(currentTime, duration || 0)}
       onChange={handleSeek}
       style={{
         background: `linear-gradient(
@@ -207,10 +348,16 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
     />
   );
 
+  // Don't render player before song selection.
+
+  if (!song) {
+    return null;
+  }
+
   return (
     <>
       {/* REAL AUDIO ELEMENT */}
-      <audio ref={audioRef} preload="metadata" />
+      <audio ref={audioRef} preload="auto" />
 
       {/* MOBILE PLAYER */}
       {isMobileOpen && (
