@@ -141,7 +141,7 @@ const MusicPage = () => {
   const albumSongs = albumDetails?.musics || selectedAlbum?.musics || [];
 
   return (
-    <div className="min-h-screen bg-[#E5E0D2] p-4 sm:p-6 lg:p-8 font-sans">
+    <div className="min-h-screen bg-[#E5E0D2] mt-14 p-4 sm:p-6 lg:p-8 font-sans">
       <div className="min-h-screen pb-28">
         {/* Navigation */}
         <TabNavigation activeTab={activeTab} setActiveTab={handleTabChange} />
