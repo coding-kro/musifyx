@@ -1,21 +1,43 @@
 import { Mail, Calendar, Music } from 'lucide-react';
 import Logout from '../components/Logout';
+import toast from 'react-hot-toast';
+import { api } from '../api/axios';
+import { useState } from 'react';
 
-const User = ({ userData, onLogout }) => {
-  const user = userData || {
-    username: 'Alex Morgan',
-    email: 'alex.morgan@example.com',
-    uploadedSongsCount: 24,
-    createdAt: 'January 2024',
-  };
+const User = ({ user, setUser }) => {
+  const [loading, setLoading] = useState(false);
 
-  const avatarLetter = user.username
-    ? user.username.charAt(0).toUpperCase()
+  const createdAt = new Date(user.createdAt).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const avatarLetter = user?.username
+    ? user?.username.charAt(0).toUpperCase()
     : 'U';
+
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+
+      const response = await api.post('/auth/logout');
+
+      console.log(response);
+
+      toast.success(response.data.message || 'User logged out successfully');
+
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error(error.response?.data?.message || 'User logout failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-lg mx-auto p-4 sm:p-6 min-h-[80vh] flex items-center justify-center">
-      {/* Profile Card */}
       <div className="relative w-full overflow-hidden rounded-3xl border border-white/60 bg-linear-to-br from-[#ECE6D5] via-[#FAF7EE] to-[#EAE3CD] p-8 shadow-xl flex flex-col items-center text-center">
         {/* Accent Glow */}
         <div className="absolute -top-20 left-1/2 h-52 w-52 -translate-x-1/2 rounded-full bg-[#FFDB58]/30 blur-3xl pointer-events-none" />
@@ -69,13 +91,13 @@ const User = ({ userData, onLogout }) => {
             </div>
 
             <span className="text-sm font-semibold text-neutral-800">
-              {user.createdAt}
+              {createdAt}
             </span>
           </div>
 
           {/* Logout */}
           <div className="pt-2">
-            <Logout onLogout={onLogout} />
+            <Logout onClick={handleLogout} disabled={loading} />
           </div>
         </div>
       </div>

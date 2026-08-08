@@ -23,7 +23,7 @@ import ArtistRoute from './components/ArtistRoute';
 const Layout = () => {
   const location = useLocation();
 
-  const { user, loading } = useAuth();
+  const { user, loading, setUser } = useAuth();
 
   const hideLayout =
     location.pathname === '/login' || location.pathname === '/register';
@@ -59,7 +59,10 @@ const Layout = () => {
             {/* Protected routes */}
             <Route path="/" element={<MusicPage />} />
 
-            <Route path="/me" element={<User />} />
+            <Route
+              path="/me"
+              element={<User user={user} setUser={setUser} />}
+            />
 
             <Route
               path="/upload-music"

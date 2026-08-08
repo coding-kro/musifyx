@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Header = ({ user }) => {
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = (e) => {
@@ -50,6 +53,7 @@ const Header = ({ user }) => {
             </span>
 
             <button
+              onClick={() => navigate('/me')}
               type="button"
               aria-label="User Profile"
               className="rounded-full focus:outline-none focus:ring-2 focus:ring-[#FFDB58]"
