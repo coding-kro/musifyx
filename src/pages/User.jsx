@@ -2,12 +2,15 @@ import { Mail, Calendar, Music } from 'lucide-react';
 import Logout from '../components/Logout';
 import toast from 'react-hot-toast';
 import { api } from '../api/axios';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const User = ({ user, setUser }) => {
-  const [loading, setLoading] = useState(false);
 
-  const createdAt = new Date(user.createdAt).toLocaleDateString('en-IN', {
+
+  const [loading, setLoading] = useState(false);
+  const [musicCount, setMusicCount] = useState(0);
+
+  const createdAt = new Date(user?.createdAt).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
@@ -17,13 +20,27 @@ const User = ({ user, setUser }) => {
     ? user?.username.charAt(0).toUpperCase()
     : 'U';
 
+  useEffect(() => {
+    const getNoOfSOngs = async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get('/music/count');
+
+        setMusicCount(data?.musicCount);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getNoOfSOngs();
+  }, []);
+
   const handleLogout = async () => {
     try {
       setLoading(true);
 
       const response = await api.post('/auth/logout');
-
-      console.log(response);
 
       toast.success(response.data.message || 'User logged out successfully');
 
@@ -37,7 +54,7 @@ const User = ({ user, setUser }) => {
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto p-4 sm:p-6 min-h-[80vh] flex items-center justify-center">
+    <div className="w-full max-w-lg mx-auto p-4 sm:p-6 min-h-[80vh] flex items-center justify-center mt-12">
       <div className="relative w-full overflow-hidden rounded-3xl border border-white/60 bg-linear-to-br from-[#ECE6D5] via-[#FAF7EE] to-[#EAE3CD] p-8 shadow-xl flex flex-col items-center text-center">
         {/* Accent Glow */}
         <div className="absolute -top-20 left-1/2 h-52 w-52 -translate-x-1/2 rounded-full bg-[#FFDB58]/30 blur-3xl pointer-events-none" />
@@ -74,7 +91,7 @@ const User = ({ user, setUser }) => {
             </div>
 
             <span className="font-mono text-lg font-bold text-neutral-800">
-              {user.uploadedSongsCount}
+              {musicCount}
             </span>
           </div>
 
