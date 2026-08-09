@@ -48,11 +48,26 @@ const MusicPage = () => {
 
     setCurrentSong(song);
     setCurrentPlaylist(playlist);
-    setCurrentIndex(index);
+    setCurrentIndex(index !== -1 ? index : 0);
   };
 
-  //  Play next song
+  // Listen for custom 'play-song' event emitted by Header component
+  useEffect(() => {
+    const handleCustomPlaySong = (event) => {
+      const selectedSong = event.detail;
+      if (selectedSong) {
+        handlePlaySong(selectedSong);
+      }
+    };
 
+    window.addEventListener('play-song', handleCustomPlaySong);
+
+    return () => {
+      window.removeEventListener('play-song', handleCustomPlaySong);
+    };
+  }, [songData]);
+
+  // Play next song
   const handleNextSong = () => {
     if (!currentPlaylist.length) return;
 
@@ -71,15 +86,13 @@ const MusicPage = () => {
     setCurrentSong(nextSong);
   };
 
-  //  Play previous song
-
+  // Play previous song
   const handlePreviousSong = () => {
     if (!currentPlaylist.length) return;
 
     const previousIndex = currentIndex - 1;
 
-    // If already at first song,
-    // keep playing the first song.
+    // If already at first song, keep playing the first song.
     if (previousIndex < 0) {
       setCurrentIndex(0);
       setCurrentSong(currentPlaylist[0]);
@@ -137,7 +150,6 @@ const MusicPage = () => {
   }, [selectedAlbum]);
 
   // Songs belonging to currently selected album
-
   const albumSongs = albumDetails?.musics || selectedAlbum?.musics || [];
 
   return (
