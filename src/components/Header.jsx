@@ -93,7 +93,7 @@ const Header = ({ user, onPlay }) => {
 
   // Pass song to parent player or dispatch custom event
   const handleSongClick = (song) => {
-    console.log('Selected song from search:', song);
+    // console.log('Selected song from search:', song);
 
     // Call prop if provided
     if (onPlay) {

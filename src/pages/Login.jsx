@@ -26,8 +26,6 @@ export default function Login() {
     try {
       setLoading(true);
 
-      console.log('Login Payload:', formData);
-
       const response = await api.post(`/auth/login`, formData);
 
       setUser(response?.data?.user);

@@ -6,17 +6,27 @@ import { api } from '../api/axios.js';
 
 export default function Register() {
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
+    role: '',
   });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const setRole = (role) => {
+    setFormData((prev) => ({
+      ...prev,
+      role,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -27,19 +37,25 @@ export default function Register() {
       return;
     }
 
+    if (!formData.role) {
+      toast.error('Please select a role');
+      return;
+    }
+
     try {
       setLoading(true);
 
-      console.log('Register Payload:', formData);
-
-      const response = await api.post(`/auth/register`, formData);
+      const response = await api.post('/auth/register', formData);
 
       setFormData({
         username: '',
         email: '',
         password: '',
+        role: '',
       });
+
       toast.success(response.data.message || 'Account created successfully!');
+
       navigate('/login');
     } catch (error) {
       console.error('Register Error:', error);
@@ -49,6 +65,7 @@ export default function Register() {
       setLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen bg-[#E5E0D2] p-2.5 sm:p-5 lg:p-8 flex items-center justify-center font-sans">
       <div className="w-full max-w-7xl bg-linear-to-tr from-[#ECE6D5] via-[#FAF7EE] to-[#EAE3CD] rounded-2xl sm:rounded-[36px] shadow-2xl p-4 sm:p-8 lg:p-10 border border-white/60 min-h-0 lg:min-h-180 flex flex-col lg:flex-row gap-6 lg:gap-8">
@@ -57,7 +74,6 @@ export default function Register() {
           <div>
             {/* Brand */}
             <div className="relative inline-flex flex-col items-center">
-              {/* Music Beats */}
               <div className="absolute -top-7 flex items-end gap-1.5">
                 <span className="beat h-3"></span>
                 <span className="beat beat2 h-7"></span>
@@ -78,6 +94,7 @@ export default function Register() {
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-normal text-neutral-800 tracking-tight">
                 Create an account
               </h1>
+
               <p className="text-xs sm:text-sm text-neutral-500 mt-1.5 sm:mt-2">
                 Please enter your details to sign up
               </p>
@@ -85,10 +102,12 @@ export default function Register() {
 
             {/* Registration Form */}
             <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
+              {/* Username */}
               <div>
                 <label className="block text-[11px] font-medium text-neutral-500 mb-1 pl-3">
                   User name
                 </label>
+
                 <input
                   name="username"
                   type="text"
@@ -101,10 +120,12 @@ export default function Register() {
                 />
               </div>
 
+              {/* Email */}
               <div>
                 <label className="block text-[11px] font-medium text-neutral-500 mb-1 pl-3">
                   Email
                 </label>
+
                 <input
                   name="email"
                   type="email"
@@ -117,10 +138,57 @@ export default function Register() {
                 />
               </div>
 
+              {/* Role */}
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-500 mb-1 pl-3">
+                  Role
+                </label>
+
+                {/* Selected role */}
+                <input
+                  name="role"
+                  type="text"
+                  placeholder="Select your role"
+                  value={formData.role}
+                  readOnly
+                  required
+                  className="w-full px-4 sm:px-5 py-2.5 sm:py-3 bg-white/90 border border-black/5 rounded-full text-xs sm:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-300 transition"
+                />
+
+                {/* Role buttons */}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole('user')}
+                    className={`flex-1 rounded-xl p-2 text-sm border transition ${
+                      formData.role === 'user'
+                        ? 'bg-[#FFDB58] border-[#FFDB58] text-neutral-800'
+                        : 'bg-white/70 border-black/5 hover:bg-white'
+                    }`}
+                  >
+                    User
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRole('artist')}
+                    className={`flex-1 rounded-xl p-2 text-sm border transition ${
+                      formData.role === 'artist'
+                        ? 'bg-[#FFDB58] border-[#FFDB58] text-neutral-800'
+                        : 'bg-white/70 border-black/5 hover:bg-white'
+                    }`}
+                  >
+                    Artist
+                  </button>
+                </div>
+              </div>
+
+              {/* Password */}
               <div>
                 <label className="block text-[11px] font-medium text-neutral-500 mb-1 pl-3">
                   Password
                 </label>
+
                 <input
                   name="password"
                   type="password"
@@ -137,7 +205,7 @@ export default function Register() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full mt-2 py-3 sm:py-3.5 px-4 bg-[#FFDB58] hover:bg-[#f5cf4a] text-neutral-800 rounded-full font-medium text-xs sm:text-sm transition-all shadow-sm active:scale-[0.99]"
+                className="w-full mt-2 py-3 sm:py-3.5 px-4 bg-[#FFDB58] hover:bg-[#f5cf4a] text-neutral-800 rounded-full font-medium text-xs sm:text-sm transition-all shadow-sm active:scale-[0.99] disabled:opacity-60"
               >
                 {loading ? 'Creating...' : 'Submit'}
               </button>
