@@ -39,7 +39,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   }, [onPrevious]);
 
   //  Load and automatically play selected song.
-
   useEffect(() => {
     const audio = audioRef.current;
 
@@ -52,25 +51,20 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
     const loadSong = async () => {
       try {
         // Stop previous song.
-
         audio.pause();
 
         // Reset player state.
-
         setIsPlaying(false);
         setCurrentTime(0);
         setDuration(0);
 
         //  Set new audio source.
-
         audio.src = audioUrl;
 
         // Load the new source.
-
         audio.load();
 
         // Wait for browser to process the new source.
-
         await new Promise((resolve, reject) => {
           const handleCanPlay = () => {
             cleanup();
@@ -94,13 +88,11 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
         });
 
         //  Song changed while loading.
-
         if (cancelled) {
           return;
         }
 
         // Automatically start the selected song.
-
         await audio.play();
 
         if (!cancelled) {
@@ -122,7 +114,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
     loadSong();
 
     // Cleanup when song changes/unmounts.
-
     return () => {
       cancelled = true;
       audio.pause();
@@ -153,7 +144,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
       setCurrentTime(0);
 
       // Ask MusicPage for the next song.
-
       if (onNextRef.current) {
         onNextRef.current();
       }
@@ -169,7 +159,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
 
     const handleError = () => {
       // Ignore empty source errors.
-
       if (!audio.src) {
         return;
       }
@@ -207,7 +196,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   }, []);
 
   // Volume
-
   useEffect(() => {
     const audio = audioRef.current;
 
@@ -219,7 +207,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   }, [volume, isMuted]);
 
   // Play / Pause
-
   const togglePlay = async () => {
     const audio = audioRef.current;
 
@@ -243,7 +230,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   };
 
   // Seek
-
   const handleSeek = (e) => {
     const value = Number(e.target.value);
     const audio = audioRef.current;
@@ -257,20 +243,19 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   };
 
   // Volume
-
   const handleVolumeChange = (e) => {
     const value = Number(e.target.value);
 
     setVolume(value);
     setIsMuted(value === 0);
   };
+
   // Mute
   const toggleMute = () => {
     setIsMuted((prev) => !prev);
   };
 
   //  Previous
-
   const handlePrevious = () => {
     if (onPreviousRef.current) {
       onPreviousRef.current();
@@ -278,7 +263,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   };
 
   // Next
-
   const handleNext = () => {
     if (onNextRef.current) {
       onNextRef.current();
@@ -286,7 +270,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   };
 
   // Format time
-
   const formatTime = (seconds) => {
     if (!Number.isFinite(seconds) || seconds < 0) {
       return '0:00';
@@ -299,12 +282,10 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   };
 
   // Progress
-
   const progress =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
 
   // Volume icon
-
   const renderVolumeIcon = () => {
     if (isMuted || volume === 0) {
       return <VolumeX className="h-5 w-5" />;
@@ -318,7 +299,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   };
 
   // Slider
-
   const Slider = () => (
     <input
       type="range"
@@ -349,7 +329,6 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
   );
 
   // Don't render player before song selection.
-
   if (!song) {
     return null;
   }
@@ -377,7 +356,7 @@ const MusicPlayerFooter = ({ song, onNext, onPrevious }) => {
               <img
                 src={cover}
                 alt={title}
-                className="h-64 w-64 rounded-3xl object-cover shadow-xl"
+                className="h-64 w-64 rounded-3xl object-cover shadow-xl min-[425px]:h-80 min-[425px]:w-80 min-[1024px]:h-120 min-[1024px]:w-120"
               />
             ) : (
               <div className="flex h-64 w-64 items-center justify-center rounded-3xl bg-[#E6DDC6]">
